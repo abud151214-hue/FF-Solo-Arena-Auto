@@ -1,0 +1,20 @@
+const functions = require("firebase-functions");
+const admin = require("firebase-admin");
+admin.initializeApp();
+
+exports.sendRoomDetails = functions.pubsub.schedule('every 1 minutes').onRun(async (context) => {
+  const tenMinsLater = Date.now() + 10 * 60 * 1000;
+  const snap = await admin.firestore().collection('tournaments')
+    .where('status', '==', 'scheduled')
+    .where('startTime', '<=', admin.firestore.Timestamp.fromMillis(tenMinsLater))
+    .get();
+  
+  const promises = [];
+  snap.forEach(doc => {
+    const roomId = Math.floor(100000 + Math.random() * 900000);
+    const roomPass = Math.floor(1000 + Math.random() * 9000);
+    promises.push(doc.ref.update({status: 'live', roomId: roomId, roomPass: roomPass}));
+  });
+  await Promise.all(promises);
+  return null;
+});
